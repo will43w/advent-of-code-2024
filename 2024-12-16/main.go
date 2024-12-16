@@ -47,8 +47,35 @@ func main() {
 	reindeer := findReindeer(maze)
 	end := findEnd(maze)
 
-	shortestRoute := findShortestRoute(reindeer, end, maze, debug)
-	fmt.Println("Shortest route found with total score of ", shortestRoute.Score)
+	shortestRoutes := findShortestRoutes(reindeer, end, maze, debug)
+	fmt.Println("Lowest possible score found to be ", shortestRoutes[0].Score)
+	fmt.Println("Tiles on shortest routes found to be ", countTilesOnAnyShortestRoute(maze, shortestRoutes))
+}
+
+func countTilesOnAnyShortestRoute(maze [][]byte, shortestRoutes []Route) int {
+	traversedMaze := make([][]byte, len(maze))
+	for row, items := range maze {
+		itemsCopy := make([]byte, len(items))
+		copy(itemsCopy, items)
+		traversedMaze[row] = itemsCopy
+	}
+
+	for _, route := range shortestRoutes {
+		for _, step := range route.Path {
+			traversedMaze[step.Point.Row][step.Point.Col] = 'O'
+		}
+	}
+
+	tileCount := 0
+	for _, items := range traversedMaze {
+		for _, item := range items {
+			if item == 'O' {
+				tileCount++
+			}
+		}
+	}
+
+	return tileCount
 }
 
 func findReindeer(maze [][]byte) DirectedPoint {
@@ -134,9 +161,9 @@ type Route struct {
 	Score    int
 }
 
-func findShortestRoute(start DirectedPoint, end Point, maze [][]byte, debug bool) Route {
+func findShortestRoutes(start DirectedPoint, end Point, maze [][]byte, debug bool) []Route {
 	winningScore := math.MaxInt
-	var shortestRoute Route
+	shortestRoutes := make([]Route, 0)
 
 	queue := []Route{{
 		Reindeer: start,
@@ -160,7 +187,9 @@ func findShortestRoute(start DirectedPoint, end Point, maze [][]byte, debug bool
 		if route.Reindeer.Point == end {
 			if route.Score < winningScore {
 				winningScore = route.Score
-				shortestRoute = route
+				shortestRoutes = []Route{route}
+			} else if route.Score == winningScore {
+				shortestRoutes = append(shortestRoutes, route)
 			}
 
 			continue
@@ -191,7 +220,7 @@ func findShortestRoute(start DirectedPoint, end Point, maze [][]byte, debug bool
 		}
 	}
 
-	return shortestRoute
+	return shortestRoutes
 }
 
 func getPossibleReindeerSteps(reindeer DirectedPoint, maze [][]byte) []DirectedPoint {
